@@ -17,6 +17,11 @@ bash setup.sh  # Install dependencies (xgboost, numpy, scikit-learn)
 ```bash
 bash test_treegen.sh  # Run the main test suite
 python3 -m tests.test_treegen  # Alternative way to run tests
+
+# Enhanced testing with configurable parameters
+python3 -m tests.test_treegen --num-models 5 --num-arrays 20  # Test 5 models with 20 arrays each
+python3 -m tests.test_treegen --num-models 3 --num-arrays 10 --verbose  # Verbose output with debug info
+python3 -m tests.test_treegen --help  # Show all available options
 ```
 
 ### Model Generation and Analysis
@@ -66,4 +71,12 @@ The project validates correctness by comparing predictions between:
 1. XGBoost's native `predict()` method
 2. Custom tree traversal implementation
 
-Tests use random feature vectors and check for numerical equivalence using `np.isclose()`.
+#### Enhanced Test Suite Features
+
+- **Configurable Testing**: Use `--num-models` to specify how many random XGBoost models to generate and test
+- **Multiple Test Arrays**: Use `--num-arrays` to control how many random feature vectors to test per model (uses seeds 1, 2, 3... for reproducibility)
+- **Colorized Logging**: Tests feature color-coded output with different colors for INFO (green), WARNING (yellow), ERROR (red), and DEBUG (cyan)
+- **Verbose Mode**: Use `--verbose` or `-v` for detailed debug output showing individual test results
+- **Comprehensive Reporting**: Final summary shows total pass/fail statistics across all models and test arrays
+
+Tests use random feature vectors and check for numerical equivalence using `np.isclose()` with default tolerances.
