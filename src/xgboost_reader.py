@@ -120,10 +120,19 @@ class Tree:
         Returns:
             The prediction value from the leaf node.
         """
+        import numpy as np
+        
         current_node = self.root
         while current_node.left_child_id != -1:  # While it's not a leaf node
+            # XGBoost uses single-precision (float32) for split comparisons internally
+            # This avoids precision issues when loading models from JSON format
+            # Sources: https://github.com/dmlc/xgboost/issues/4097
+            #          https://github.com/dmlc/xgboost/issues/4060
+            feature_val = np.float32(feature_values[current_node.split_index])
+            split_cond = np.float32(current_node.split_condition)
+            
             # Check if the feature value is less than the split condition
-            if feature_values[current_node.split_index] < current_node.split_condition:
+            if feature_val < split_cond:
                 current_node = current_node.left_child
             else:
                 current_node = current_node.right_child

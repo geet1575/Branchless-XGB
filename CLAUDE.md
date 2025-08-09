@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Citation Requirements
+**ALWAYS cite sources** for technical claims, implementation details, or statements about how libraries/frameworks work. Include:
+- GitHub issue links for documented problems
+- Official documentation references  
+- Source code links when referencing implementation details
+- Version numbers when behavior is version-specific
+
+## Code Style Requirements
+**Python Import Organization**: ALL imports must be placed at the top of Python files, grouped as follows:
+1. Standard library imports
+2. Third-party library imports  
+3. Local/project imports
+Never use imports inside functions or methods unless absolutely necessary for avoiding circular imports.
+
 ## Project Overview
 
 BranchLessXGBoost is a Python project that provides tools for reading, parsing, and analyzing XGBoost model trees without using branching logic. The project focuses on converting XGBoost models to a custom tree representation that can be analyzed and visualized.
@@ -80,3 +94,20 @@ The project validates correctness by comparing predictions between:
 - **Comprehensive Reporting**: Final summary shows total pass/fail statistics across all models and test arrays
 
 Tests use random feature vectors and check for numerical equivalence using `np.isclose()` with default tolerances.
+
+#### Important Implementation Notes
+
+**Learning Rate (eta) in Saved Models**: XGBoost pre-scales leaf values by the learning rate during training and saves the already-scaled values in JSON models. Therefore, when implementing custom tree prediction from saved XGBoost JSON files:
+
+- ✅ **Use eta = 1.0** - leaf values are already scaled  
+- ❌ **Don't use the original learning rate** - this would double-scale the values
+
+This was verified through empirical testing: models trained with different learning rates (0.1, 0.3, 1.0) all require eta=1.0 for correct prediction when reading from JSON files.
+
+**Floating Point Precision**: XGBoost has documented precision issues when loading models from JSON format due to internal single-precision float handling:
+
+- **JSON Precision Loss**: "[XGBoost] handles values as single precision floats internally, however when the model is exported as JSON, the values in the child leaf nodes lose precision" ([GitHub Issue #4097](https://github.com/dmlc/xgboost/issues/4097))
+- **Split Threshold Issues**: Conversion to JSON "destroyed the information needed to route down the correct path" for thresholds extremely close to feature values ([GitHub Issue #4060](https://github.com/dmlc/xgboost/issues/4060))
+- **Recommended Solution**: "The only safe bet is to convert the input data to 32-bit" before processing ([GitHub Issue #4097](https://github.com/dmlc/xgboost/issues/4097))
+
+For exact XGBoost compatibility in edge cases, convert feature values and split conditions to float32 before comparison: `np.float32(feature_val) < np.float32(split_condition)`.

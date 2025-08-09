@@ -1,10 +1,17 @@
-import xgboost as xgb
-from src.xgboost_reader import Node, Tree, create_trees_from_json
-import numpy as np
-import json
+# Standard library imports
 import argparse
+import json
 import logging
+import os
+import sys
+
+# Third-party imports
+import numpy as np
+import xgboost as xgb
 from colorama import init, Fore, Style
+
+# Local imports
+from src.xgboost_reader import Node, Tree, create_trees_from_json
 from src.generate_random_xgb import train_random_xgb
 
 # Initialize colorama for cross-platform colored terminal output
@@ -46,7 +53,7 @@ def setup_logging(level=logging.INFO):
     
     return logger
 
-def test_single_model_prediction(model_path, num_test_arrays, logger):
+def test_single_model_prediction(model_path, num_test_arrays, logger, mismatch_buffer, model_params):
     """
     Test a single XGBoost model against our custom tree implementation.
     
@@ -58,6 +65,10 @@ def test_single_model_prediction(model_path, num_test_arrays, logger):
         Number of random test arrays to generate and test
     logger : logging.Logger
         Logger instance for colored output
+    mismatch_buffer : list
+        Buffer to collect mismatch information for final summary
+    model_params : dict
+        Model generation parameters (seed, features, trees, depth)
         
     Returns:
     --------
@@ -105,6 +116,8 @@ def test_single_model_prediction(model_path, num_test_arrays, logger):
                 successful_tests += 1
                 logger.debug(f"Test {i+1}/{num_test_arrays}: PASS (XGB: {model_output:.6f}, Custom: {forest_output:.6f})")
             else:
+                mismatch_info = f"Model(seed={model_params['seed']}, features={model_params['features']}, trees={model_params['trees']}, depth={model_params['depth']}) - Test {i+1} (seed={i+1}): XGB={model_output:.6f}, Custom={forest_output:.6f}, Diff={abs(model_output - forest_output):.6f}"
+                mismatch_buffer.append(mismatch_info)
                 logger.error(f"Test {i+1}/{num_test_arrays}: FAIL (XGB: {model_output:.6f}, Custom: {forest_output:.6f}, Diff: {abs(model_output - forest_output):.6f})")
         
         if successful_tests == total_tests:
@@ -116,6 +129,7 @@ def test_single_model_prediction(model_path, num_test_arrays, logger):
         
     except Exception as e:
         logger.error(f"Failed to test model {model_path}: {str(e)}")
+        mismatch_buffer.append(f"Model(seed={model_params['seed']}, features={model_params['features']}, trees={model_params['trees']}, depth={model_params['depth']}) - EXCEPTION: {str(e)}")
         return 0, num_test_arrays
 
 
@@ -136,6 +150,7 @@ def run_comprehensive_test(num_models, num_arrays, logger):
     
     total_successful = 0
     total_tests = 0
+    mismatch_buffer = []  # Collect all mismatches for final summary
     
     for model_idx in range(num_models):
         logger.info(f"\n{'='*50}")
@@ -164,17 +179,23 @@ def run_comprehensive_test(num_models, num_arrays, logger):
             logger.info(f"Model saved to {model_path}")
             
             # Test the model
-            successful, total = test_single_model_prediction(model_path, num_arrays, logger)
+            model_params = {
+                'seed': model_seed,
+                'features': num_features,
+                'trees': n_estimators,
+                'depth': max_depth
+            }
+            successful, total = test_single_model_prediction(model_path, num_arrays, logger, mismatch_buffer, model_params)
             total_successful += successful
             total_tests += total
             
             # Clean up model file
-            import os
             os.remove(model_path)
             logger.debug(f"Cleaned up {model_path}")
             
         except Exception as e:
             logger.error(f"Failed to generate/test model {model_idx + 1}: {str(e)}")
+            mismatch_buffer.append(f"Model {model_idx + 1} - MODEL GENERATION EXCEPTION: {str(e)}")
             total_tests += num_arrays
     
     # Final summary
@@ -186,6 +207,15 @@ def run_comprehensive_test(num_models, num_arrays, logger):
         logger.info(f"🎉 ALL TESTS PASSED! {total_successful}/{total_tests} tests successful")
     else:
         logger.warning(f"⚠ {total_successful}/{total_tests} tests passed ({100*total_successful/total_tests:.1f}%)")
+        
+    # Always show mismatch summary if there are any failures (even without verbose)
+    if mismatch_buffer:
+        print(f"\n{'='*60}")
+        print("MISMATCH SUMMARY (for reproduction):")
+        print(f"{'='*60}")
+        for i, mismatch in enumerate(mismatch_buffer, 1):
+            print(f"{i:2d}. {mismatch}")
+        print(f"{'='*60}")
         
     return total_successful == total_tests
 
@@ -226,11 +256,11 @@ def main():
     
     if success:
         logger.info("\n✅ All tests completed successfully!")
-        exit(0)
+        return 0
     else:
         logger.error("\n❌ Some tests failed!")
-        exit(1)
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
