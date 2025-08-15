@@ -1,1 +1,1 @@
-pip install xgboost numpy scikit-learn
+pip install xgboost numpy scikit-learn tl2cgen
