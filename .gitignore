@@ -25,3 +25,6 @@ src/cpp_code/benchmark/
 # Timing output files
 src/cpp_code/naive_times.txt
 src/cpp_code/branchless_times.txt
+
+# data files that are randomly generated everytime
+*.csv
