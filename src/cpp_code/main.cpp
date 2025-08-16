@@ -3,9 +3,19 @@
 #include <vector>
 #include <string>
 #include <sstream>
+#include <chrono>
+#include <iomanip>
+
+#if defined(BENCHMARK_NAIVE) || defined(BENCHMARK_BRANCHLESS)
+#include <benchmark/benchmark.h>
+#endif
 
 // Include the prediction functions
 #include "predict.cpp"
+
+// Global data for benchmarking
+std::vector<std::vector<float>> g_inputData;
+bool g_dataLoaded = false;
 
 // Function to read CSV file into a 2D vector
 std::vector<std::vector<float>> readCSV(const std::string& filename) {
@@ -59,6 +69,52 @@ void writeCSV(const std::vector<float>& predictions, const std::string& filename
     std::cout << "Wrote " << predictions.size() << " predictions to " << filename << std::endl;
 }
 
+#if defined(BENCHMARK_NAIVE) || defined(BENCHMARK_BRANCHLESS)
+// Load data for benchmarking
+void loadBenchmarkData() {
+    if (!g_dataLoaded) {
+        std::string inputFile = "../../data/inputs.csv";
+        g_inputData = readCSV(inputFile);
+        g_dataLoaded = true;
+    }
+}
+
+#ifdef BENCHMARK_NAIVE
+// Benchmark naive prediction
+static void BM_PredictNaive(benchmark::State& state) {
+    loadBenchmarkData();
+    if (g_inputData.empty()) return;
+    
+    for (auto _ : state) {
+        // Process entire dataset in each iteration
+        for (size_t i = 0; i < g_inputData.size(); i++) {
+            float prediction = predict_forest_naive(g_inputData[i].data());
+            benchmark::DoNotOptimize(prediction);
+        }
+    }
+}
+BENCHMARK(BM_PredictNaive);
+#endif
+
+#ifdef BENCHMARK_BRANCHLESS
+// Benchmark branchless prediction
+static void BM_PredictBranchless(benchmark::State& state) {
+    loadBenchmarkData();
+    if (g_inputData.empty()) return;
+    
+    for (auto _ : state) {
+        // Process entire dataset in each iteration
+        for (size_t i = 0; i < g_inputData.size(); i++) {
+            float prediction = predict_forest_branchless(g_inputData[i].data());
+            benchmark::DoNotOptimize(prediction);
+        }
+    }
+}
+BENCHMARK(BM_PredictBranchless);
+#endif
+
+#else
+// Regular main function for prediction
 int main() {
     // Read input data from CSV
     std::string inputFile = "../../data/inputs.csv";
@@ -103,3 +159,4 @@ int main() {
     std::cout << "Prediction completed successfully!" << std::endl;
     return 0;
 }
+#endif

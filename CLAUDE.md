@@ -129,6 +129,66 @@ bash generate_benchmark_data.sh  # Creates 100,000 samples with default settings
 # - Builds C++ prediction code for benchmarking
 ```
 
+### Google Benchmark Performance Testing
+```bash
+# Run benchmarks with custom minimum time and time units
+cd src/cpp_code
+
+# Build benchmark executables
+make benchmark_naive    # Build naive benchmark
+make benchmark_branchless  # Build branchless benchmark
+
+# Basic benchmark execution
+./benchmark_naive --benchmark_min_time=50x --benchmark_time_unit=us
+./benchmark_branchless --benchmark_min_time=50x --benchmark_time_unit=us
+
+# Advanced benchmark options
+./benchmark_naive --benchmark_repetitions=5  # Run 5 repetitions for more reliable stats
+./benchmark_naive --benchmark_min_time=10s   # Run for minimum 10 seconds
+./benchmark_naive --benchmark_time_unit=ms   # Report in milliseconds (us, ns, s available)
+./benchmark_naive --benchmark_counters_tabular=true  # Better counter display format
+
+# Hardware performance counters (requires perf and proper permissions)
+perf stat -e instructions,cycles,branches,branch-misses,cache-references,cache-misses,L1-dcache-loads,L1-dcache-load-misses ./benchmark_naive
+perf stat -e instructions,cycles,branches,branch-misses,cache-references,cache-misses,L1-dcache-loads,L1-dcache-load-misses ./benchmark_branchless
+
+# Detailed perf analysis with all available counters
+perf stat -e task-clock,context-switches,cpu-migrations,page-faults,cycles,instructions,branches,branch-misses,cache-references,cache-misses,L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,L1-icache-load-misses,LLC-loads,LLC-load-misses,dTLB-loads,dTLB-load-misses,iTLB-loads,iTLB-load-misses ./benchmark_naive
+
+# Branch prediction analysis specifically
+perf stat -e branches,branch-misses,branch-loads,branch-load-misses ./benchmark_naive
+perf stat -e branches,branch-misses,branch-loads,branch-load-misses ./benchmark_branchless
+
+# Cache hierarchy analysis
+perf stat -e L1-dcache-loads,L1-dcache-load-misses,L1-dcache-stores,L1-dcache-store-misses,L1-icache-loads,L1-icache-load-misses,LLC-loads,LLC-load-misses,LLC-stores,LLC-store-misses ./benchmark_naive
+
+# CPU pipeline analysis
+perf stat -e cycles,instructions,stalled-cycles-frontend,stalled-cycles-backend,cpu-clock,task-clock ./benchmark_naive
+
+# Memory access patterns
+perf stat -e dTLB-loads,dTLB-load-misses,dTLB-stores,dTLB-store-misses,iTLB-loads,iTLB-load-misses ./benchmark_naive
+
+# Combined comprehensive analysis
+perf stat -e instructions,cycles,branches,branch-misses,cache-references,cache-misses,L1-dcache-loads,L1-dcache-load-misses,L1-icache-load-misses,LLC-loads,LLC-load-misses,dTLB-load-misses,stalled-cycles-frontend,stalled-cycles-backend --benchmark_min_time=10s ./benchmark_naive
+
+# Record detailed performance data for later analysis
+perf record -g ./benchmark_naive
+perf report  # View the recorded data
+
+# Intel-specific counters (if available)
+perf stat -e cpu/event=0xc4,umask=0x00/,cpu/event=0xc5,umask=0x00/ ./benchmark_naive  # Branch instructions and mispredictions
+
+# Generate performance comparison report
+echo "=== Naive Implementation ===" > perf_comparison.txt
+perf stat -e instructions,cycles,branches,branch-misses,cache-misses ./benchmark_naive 2>> perf_comparison.txt
+echo "=== Branchless Implementation ===" >> perf_comparison.txt  
+perf stat -e instructions,cycles,branches,branch-misses,cache-misses ./benchmark_branchless 2>> perf_comparison.txt
+
+# Setup for perf (may require root privileges)
+# echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid  # Allow user access to perf counters
+# echo 0 | sudo tee /proc/sys/kernel/kptr_restrict         # Allow access to kernel symbols
+```
+
 ## Code Architecture
 
 ### Core Components

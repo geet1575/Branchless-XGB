@@ -7,3 +7,6 @@ data/
 # C++ executables and build artifacts
 src/cpp_code/predictor_naive
 src/cpp_code/predictor_branchless
+src/cpp_code/benchmark_naive
+src/cpp_code/benchmark_branchless
+src/cpp_code/benchmark/
