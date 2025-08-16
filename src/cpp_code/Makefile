@@ -2,7 +2,7 @@
 # Builds both naive and branchless variants
 
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra -no-pie
+CXXFLAGS = -std=c++11 -Wall -Wextra -no-pie -O3
 BENCHMARK_DIR = ./benchmark
 BENCHMARK_LIBS = -L$(BENCHMARK_DIR)/build/src -lbenchmark_main -lbenchmark -lpthread
 BENCHMARK_INCLUDES = -I$(BENCHMARK_DIR)/include
@@ -15,12 +15,17 @@ NAIVE_TARGET = predictor_naive
 BRANCHLESS_TARGET = predictor_branchless
 BENCHMARK_NAIVE_TARGET = benchmark_naive
 BENCHMARK_BRANCHLESS_TARGET = benchmark_branchless
+MY_BENCHMARK_NAIVE_TARGET = my_benchmark_naive
+MY_BENCHMARK_BRANCHLESS_TARGET = my_benchmark_branchless
 
 # Default target
-all: $(NAIVE_TARGET) $(BRANCHLESS_TARGET) $(BENCHMARK_NAIVE_TARGET) $(BENCHMARK_BRANCHLESS_TARGET)
+all: $(NAIVE_TARGET) $(BRANCHLESS_TARGET) $(BENCHMARK_NAIVE_TARGET) $(BENCHMARK_BRANCHLESS_TARGET) $(MY_BENCHMARK_NAIVE_TARGET) $(MY_BENCHMARK_BRANCHLESS_TARGET)
 
 # Benchmark targets
 benchmarks: $(BENCHMARK_NAIVE_TARGET) $(BENCHMARK_BRANCHLESS_TARGET)
+
+# My benchmark targets
+my_benchmarks: $(MY_BENCHMARK_NAIVE_TARGET) $(MY_BENCHMARK_BRANCHLESS_TARGET)
 
 # Naive implementation
 naive: $(NAIVE_TARGET)
@@ -50,6 +55,20 @@ $(BENCHMARK_BRANCHLESS_TARGET): $(SOURCES)
 	$(CXX) $(CXXFLAGS) $(BENCHMARK_INCLUDES) -DBENCHMARK_BRANCHLESS $(BENCHMARK_LIBS) -o $@ $<
 	@echo "Built branchless benchmark: $@"
 
+# My benchmark naive implementation
+my_benchmark_naive: $(MY_BENCHMARK_NAIVE_TARGET)
+
+$(MY_BENCHMARK_NAIVE_TARGET): $(SOURCES)
+	$(CXX) $(CXXFLAGS) -DMY_BENCHMARK_NAIVE -o $@ $<
+	@echo "Built my naive benchmark: $@"
+
+# My benchmark branchless implementation
+my_benchmark_branchless: $(MY_BENCHMARK_BRANCHLESS_TARGET)
+
+$(MY_BENCHMARK_BRANCHLESS_TARGET): $(SOURCES)
+	$(CXX) $(CXXFLAGS) -DMY_BENCHMARK_BRANCHLESS -o $@ $<
+	@echo "Built my branchless benchmark: $@"
+
 # Test both implementations
 test: $(NAIVE_TARGET) $(BRANCHLESS_TARGET)
 	@echo "Running naive predictor..."
@@ -68,8 +87,9 @@ test: $(NAIVE_TARGET) $(BRANCHLESS_TARGET)
 
 # Clean build artifacts
 clean:
-	rm -f $(NAIVE_TARGET) $(BRANCHLESS_TARGET) $(BENCHMARK_NAIVE_TARGET) $(BENCHMARK_BRANCHLESS_TARGET)
+	rm -f $(NAIVE_TARGET) $(BRANCHLESS_TARGET) $(BENCHMARK_NAIVE_TARGET) $(BENCHMARK_BRANCHLESS_TARGET) $(MY_BENCHMARK_NAIVE_TARGET) $(MY_BENCHMARK_BRANCHLESS_TARGET)
 	rm -f ../../data/naive_outputs.csv ../../data/branchless_outputs.csv
+	rm -f naive_times.txt branchless_times.txt
 	@echo "Cleaned build artifacts and output files"
 
 # Help
@@ -81,6 +101,9 @@ help:
 	@echo "  benchmarks        - Build both benchmark executables"
 	@echo "  benchmark_naive   - Build naive benchmark executable"
 	@echo "  benchmark_branchless - Build branchless benchmark executable"
+	@echo "  my_benchmarks     - Build both my benchmark executables"
+	@echo "  my_benchmark_naive - Build my naive benchmark executable"
+	@echo "  my_benchmark_branchless - Build my branchless benchmark executable"
 	@echo "  test              - Build and run both predictors, compare outputs"
 	@echo "  clean             - Remove all build artifacts and output files"
 	@echo "  help              - Show this help message"
@@ -89,4 +112,4 @@ help:
 	@echo "  ./benchmark_naive --benchmark_perf_counters=CYCLES,INSTRUCTIONS,BRANCH-MISSES"
 	@echo "  ./benchmark_branchless --benchmark_perf_counters=CYCLES,INSTRUCTIONS,BRANCH-MISSES"
 
-.PHONY: all naive branchless benchmarks benchmark_naive benchmark_branchless test clean help
+.PHONY: all naive branchless benchmarks benchmark_naive benchmark_branchless my_benchmarks my_benchmark_naive my_benchmark_branchless test clean help

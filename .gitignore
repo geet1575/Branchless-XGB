@@ -1,5 +1,6 @@
 __pycache__/
 agents_files/*
+src/__pycache__/
 
 # Data files and generated outputs
 data/
@@ -9,4 +10,18 @@ src/cpp_code/predictor_naive
 src/cpp_code/predictor_branchless
 src/cpp_code/benchmark_naive
 src/cpp_code/benchmark_branchless
+src/cpp_code/my_benchmark_naive
+src/cpp_code/my_benchmark_branchless
 src/cpp_code/benchmark/
+
+# Exclude all executables (no extension, executable bit set)
+*
+!*/
+!*.*
+!Makefile
+!README*
+!LICENSE*
+
+# Timing output files
+src/cpp_code/naive_times.txt
+src/cpp_code/branchless_times.txt
