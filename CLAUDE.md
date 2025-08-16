@@ -50,6 +50,10 @@ python3 -m tests.test_tl2cgen --num-features 10 --num-samples 200 --verbose  # C
 # Generate a random XGBoost model with custom parameters
 python3 src/generate_random_xgb.py --num-features 10 --n_estimators 1 --max_depth 3
 
+# Generate test data and XGBoost outputs for benchmarking
+python3 src/generate_random_xgb.py --num-features 10 --num-samples 100
+# This creates data/inputs.csv (100 samples × 10 features) and data/xgboost_outputs.csv (XGBoost predictions)
+
 # Parse and analyze the generated model
 python3 src/generate_code.py
 
@@ -74,6 +78,57 @@ mkdir build && cd build
 cmake .. && make -j$(nproc)
 ```
 
+### C++ Branchless Implementation Testing
+```bash
+# Build and test the custom C++ implementations (naive vs branchless)
+cd src/cpp_code
+
+# Build naive implementation
+make naive
+./predictor_naive  # Outputs to data/naive_outputs.csv
+
+# Build branchless implementation  
+make branchless
+./predictor_branchless  # Outputs to data/branchless_outputs.csv
+
+# Build and test both implementations
+make all
+make test  # Runs both variants and compares outputs
+```
+
+### Comprehensive End-to-End Testing
+```bash
+# Run comprehensive tests that validate the complete pipeline
+python3 tests/test_codegen.py --num-tests 10  # Test 10 random models
+
+# Customizable test parameters
+python3 tests/test_codegen.py \
+  --num-tests 5 \
+  --min-features 3 --max-features 8 \
+  --min-trees 1 --max-trees 5 \
+  --min-depth 1 --max-depth 4 \
+  --min-samples 50 --max-samples 200 \
+  --verbose
+
+# Quick validation with smaller models
+python3 tests/test_codegen.py --num-tests 3 --max-trees 3 --max-depth 2
+
+# Help and all available options
+python3 tests/test_codegen.py --help
+```
+
+### Benchmark Dataset Generation
+```bash
+# Generate large datasets for performance benchmarking
+bash generate_benchmark_data.sh  # Creates 100,000 samples with default settings
+
+# The script automatically:
+# - Generates XGBoost model with 10 features and 5 trees
+# - Creates 100,000 test samples in data/inputs.csv
+# - Generates reference predictions in data/xgboost_outputs.csv
+# - Builds C++ prediction code for benchmarking
+```
+
 ## Code Architecture
 
 ### Core Components
@@ -91,6 +146,10 @@ cmake .. && make -j$(nproc)
 
 5. **C Code Generator** (`src/xgb_to_c_converter.py`): Converts XGBoost JSON models to optimized C code using TL2cgen for deployment without Python dependencies.
 
+6. **C++ Implementation Testing** (`src/cpp_code/`): Contains main.cpp, Makefile, and prediction functions for benchmarking naive vs branchless approaches.
+
+7. **End-to-End Test Framework** (`tests/test_codegen.py`): Comprehensive testing system that validates the complete pipeline from model generation to C++ prediction accuracy.
+
 ### Key Features
 
 - **Branch-less Design**: The core focus is on representing tree logic without traditional if/else branching
@@ -100,11 +159,21 @@ cmake .. && make -j$(nproc)
 
 ### File Structure
 - `src/xgboost_reader.py`: Core tree and node classes
-- `src/generate_random_xgb.py`: XGBoost model generation utilities
+- `src/generate_random_xgb.py`: XGBoost model generation utilities with `--num-samples` support
 - `src/generate_code.py`: Example usage and model parsing
-- `tests/test_treegen.py`: Validation tests comparing predictions
+- `src/cpp_code/`: C++ implementation directory
+  - `main.cpp`: Main program that loads CSV data and runs predictions
+  - `predict.cpp`: Generated prediction functions (naive and branchless)
+  - `Makefile`: Build system for both prediction variants
+- `tests/test_treegen.py`: Basic validation tests comparing predictions
+- `tests/test_codegen.py`: Comprehensive end-to-end test framework
 - `src/random_xgb_regressor.json`: Generated XGBoost model in JSON format
 - `src/xgb_to_c_converter.py`: TL2cgen-based converter for generating optimized C code
+- `data/`: Directory containing test data and prediction outputs
+  - `inputs.csv`: Generated feature vectors for testing
+  - `xgboost_outputs.csv`: Reference predictions from XGBoost
+  - `naive_outputs.csv`: Predictions from naive C++ implementation
+  - `branchless_outputs.csv`: Predictions from branchless C++ implementation
 
 ### Testing Strategy
 
@@ -121,6 +190,35 @@ The project validates correctness by comparing predictions between:
 - **Comprehensive Reporting**: Final summary shows total pass/fail statistics across all models and test arrays
 
 Tests use random feature vectors and check for numerical equivalence using `np.isclose()` with default tolerances.
+
+#### Comprehensive End-to-End Testing (`tests/test_codegen.py`)
+
+The comprehensive test framework validates the entire pipeline from XGBoost model generation to C++ prediction accuracy:
+
+**Pipeline Validation:**
+1. **Model Generation**: Creates random XGBoost models with configurable parameters
+2. **Data Generation**: Generates test datasets using `--num-samples` functionality
+3. **Code Generation**: Runs `generate_code.py` to create C++ prediction functions
+4. **Compilation**: Builds both naive and branchless C++ variants
+5. **Execution**: Runs both predictors on the test data
+6. **Validation**: Compares all three prediction sets (XGBoost, naive C++, branchless C++)
+
+**Key Features:**
+- **Randomized Testing**: Each test uses random parameters for features, trees, depth, and samples
+- **Accuracy Validation**: Ensures XGBoost ↔ C++ predictions match within tolerance (~1e-5)
+- **Implementation Consistency**: Verifies naive and branchless C++ produce identical results
+- **Comprehensive Reporting**: Color-coded logging with detailed pass/fail statistics
+- **Configurable Parameters**: Full control over test complexity and volume
+- **Error Isolation**: Pinpoints failures to specific pipeline stages (generation, compilation, execution, validation)
+
+**Test Parameters:**
+- `--num-tests`: Number of random models to test (default: 5)
+- `--min/max-features`: Feature count range (default: 3-10)
+- `--min/max-trees`: Tree count range (default: 1-10) 
+- `--min/max-depth`: Tree depth range (default: 1-5)
+- `--min/max-samples`: Sample count range (default: 50-200)
+- `--verbose`: Detailed output including individual test results
+- `--seed`: Random seed for reproducible test runs
 
 #### Important Implementation Notes
 

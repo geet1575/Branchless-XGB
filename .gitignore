@@ -1,2 +1,9 @@
 __pycache__/
 agents_files/*
+
+# Data files and generated outputs
+data/
+
+# C++ executables and build artifacts
+src/cpp_code/predictor_naive
+src/cpp_code/predictor_branchless

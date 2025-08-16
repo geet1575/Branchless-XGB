@@ -1,5 +1,7 @@
 import argparse
 import numpy as np
+import os
+import pandas as pd
 from xgboost import XGBRegressor
 
 def train_random_xgb(
@@ -82,6 +84,10 @@ if __name__ == "__main__":
         "--random-state", type=int, default=42,
         help="Random seed for reproducibility"
     )
+    parser.add_argument(
+        "--num-samples", type=int,
+        help="Generate test data with this many samples and save to data/inputs.csv and data/xgboost_outputs.csv"
+    )
     args = parser.parse_args()
 
     model, X, y = train_random_xgb(
@@ -97,8 +103,35 @@ if __name__ == "__main__":
         print(f"  - {k}: {v}")
 
     # Save to JSON (always in src directory)
-    import os
     script_dir = os.path.dirname(os.path.abspath(__file__))
     output_path = os.path.join(script_dir, "random_xgb_regressor.json")
     model.save_model(output_path)
     print(f"Model saved to {output_path}")
+
+    # Generate test data CSV files if --num-samples is provided
+    if args.num_samples is not None:
+        # Create data directory if it doesn't exist
+        project_root = os.path.dirname(script_dir)
+        data_dir = os.path.join(project_root, "data")
+        os.makedirs(data_dir, exist_ok=True)
+        
+        # Generate random input data
+        np.random.seed(args.random_state + 1)  # Use a different seed for test data
+        test_inputs = np.random.rand(args.num_samples, args.num_features)
+        
+        # Generate XGBoost predictions on the test inputs
+        xgb_outputs = model.predict(test_inputs)
+        
+        # Save inputs to CSV
+        inputs_df = pd.DataFrame(test_inputs, columns=[f"feature_{i}" for i in range(args.num_features)])
+        inputs_path = os.path.join(data_dir, "inputs.csv")
+        inputs_df.to_csv(inputs_path, index=False)
+        print(f"Test inputs saved to {inputs_path}")
+        
+        # Save XGBoost outputs to CSV
+        outputs_df = pd.DataFrame(xgb_outputs, columns=["prediction"])
+        outputs_path = os.path.join(data_dir, "xgboost_outputs.csv")
+        outputs_df.to_csv(outputs_path, index=False)
+        print(f"XGBoost outputs saved to {outputs_path}")
+        
+        print(f"Generated {args.num_samples} test samples with {args.num_features} features each")
