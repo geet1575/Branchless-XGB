@@ -1,1 +1,0 @@
-rm -rf c_output_demo && python3 src/xgb_to_c_converter.py --output ./c_output_demo
