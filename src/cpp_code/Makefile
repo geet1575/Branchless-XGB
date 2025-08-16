@@ -2,7 +2,7 @@
 # Builds both naive and branchless variants
 
 CXX = g++
-CXXFLAGS = -std=c++11 -Wall -Wextra
+CXXFLAGS = -std=c++11 -Wall -Wextra -no-pie
 BENCHMARK_DIR = ./benchmark
 BENCHMARK_LIBS = -L$(BENCHMARK_DIR)/build/src -lbenchmark_main -lbenchmark -lpthread
 BENCHMARK_INCLUDES = -I$(BENCHMARK_DIR)/include
