@@ -25,6 +25,9 @@ BranchLessXGBoost is a Python project that provides tools for reading, parsing, 
 ### Setup
 ```bash
 bash setup.sh  # Install dependencies (xgboost, numpy, scikit-learn)
+
+# For C code generation capabilities, also install:
+pip install treelite tl2cgen  # Required for XGBoost to C conversion
 ```
 
 ### Testing
@@ -36,6 +39,10 @@ python3 -m tests.test_treegen  # Alternative way to run tests
 python3 -m tests.test_treegen --num-models 5 --num-arrays 20  # Test 5 models with 20 arrays each
 python3 -m tests.test_treegen --num-models 3 --num-arrays 10 --verbose  # Verbose output with debug info
 python3 -m tests.test_treegen --help  # Show all available options
+
+# TL2cgen C code generation testing
+python3 -m tests.test_tl2cgen  # Test XGBoost to C conversion and validation
+python3 -m tests.test_tl2cgen --num-features 10 --num-samples 200 --verbose  # Custom parameters
 ```
 
 ### Model Generation and Analysis
@@ -48,6 +55,23 @@ python3 src/generate_code.py
 
 # Compare custom implementation with XGBoost's native predictions
 python3 tests/test_treegen.py
+```
+
+### C Code Generation with TL2cgen
+```bash
+# Convert XGBoost JSON model to optimized C code
+python3 src/xgb_to_c_converter.py  # Uses default input/output paths
+
+# Specify custom input and output
+python3 src/xgb_to_c_converter.py --input path/to/model.json --output ./c_code --libname my_predictor
+
+# Test the generated C library (requires compilation first)
+python3 src/xgb_to_c_converter.py --test
+
+# Build the generated C code (after conversion)
+cd c_output/xgb_predictor_src
+mkdir build && cd build
+cmake .. && make -j$(nproc)
 ```
 
 ## Code Architecture
@@ -65,6 +89,8 @@ python3 tests/test_treegen.py
 
 4. **Tree Parser** (`src/generate_code.py`): Demonstrates how to load XGBoost JSON models and convert them to the custom tree representation.
 
+5. **C Code Generator** (`src/xgb_to_c_converter.py`): Converts XGBoost JSON models to optimized C code using TL2cgen for deployment without Python dependencies.
+
 ### Key Features
 
 - **Branch-less Design**: The core focus is on representing tree logic without traditional if/else branching
@@ -78,6 +104,7 @@ python3 tests/test_treegen.py
 - `src/generate_code.py`: Example usage and model parsing
 - `tests/test_treegen.py`: Validation tests comparing predictions
 - `src/random_xgb_regressor.json`: Generated XGBoost model in JSON format
+- `src/xgb_to_c_converter.py`: TL2cgen-based converter for generating optimized C code
 
 ### Testing Strategy
 
@@ -111,3 +138,61 @@ This was verified through empirical testing: models trained with different learn
 - **Recommended Solution**: "The only safe bet is to convert the input data to 32-bit" before processing ([GitHub Issue #4097](https://github.com/dmlc/xgboost/issues/4097))
 
 For exact XGBoost compatibility in edge cases, convert feature values and split conditions to float32 before comparison: `np.float32(feature_val) < np.float32(split_condition)`.
+
+## TL2cgen Integration
+
+### Overview
+
+TL2cgen (TreeLite 2 C GENerator) is a model compiler that converts decision tree models into optimized C code ([TL2cgen Documentation](https://tl2cgen.readthedocs.io/)). This project includes `src/xgb_to_c_converter.py` which uses TL2cgen to convert XGBoost JSON models to deployable C libraries.
+
+### Key Benefits
+
+- **Performance**: Generated C code provides faster inference than Python-based predictions
+- **Deployment**: No Python runtime dependencies required for inference
+- **Cross-platform**: Generated code compiles on Linux, macOS, and Windows
+- **Parallelization**: Supports multi-threaded prediction out of the box
+
+### Architecture
+
+TL2cgen works in conjunction with Treelite ([Treelite Migration Guide](https://tl2cgen.readthedocs.io/en/latest/treelite-migration.html)):
+
+1. **Treelite**: Loads and serializes XGBoost JSON models into memory
+2. **TL2cgen**: Compiles the loaded models into optimized C source code
+3. **CMake/Make**: Builds the generated C code into shared libraries
+
+### Dependencies
+
+- `treelite`: Model loading and serialization ([GitHub](https://github.com/dmlc/treelite))
+- `tl2cgen`: C code generation ([GitHub](https://github.com/dmlc/tl2cgen))
+
+```bash
+pip install treelite tl2cgen
+```
+
+### Generated Code Structure
+
+The conversion process creates:
+
+- **C source files**: Optimized prediction logic
+- **Header files**: API definitions for integration
+- **CMakeLists.txt**: CMake build configuration
+- **Makefile**: Alternative build system
+- **BUILD_INSTRUCTIONS.md**: Compilation guide
+
+### API Migration Notes
+
+TL2cgen represents a major architectural change from Treelite 3.x:
+
+- **Model Loading**: Still use Treelite (`treelite.Model.load()`)
+- **Code Generation**: Use TL2cgen (`tl2cgen.export_srcpkg()`)
+- **Prediction**: Use `tl2cgen.Predictor()` instead of `treelite_runtime.Predictor()`
+- **Data Matrix**: Use `tl2cgen.DMatrix()` instead of `treelite_runtime.DMatrix()`
+
+### Performance Characteristics
+
+Generated C code optimizations include:
+
+- **Vectorized Operations**: SIMD instructions where applicable
+- **Memory Layout**: Cache-friendly data structures
+- **Parallel Compilation**: Multi-threaded model compilation
+- **Branch Prediction**: Optimized conditional logic

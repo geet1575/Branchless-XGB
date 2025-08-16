@@ -67,19 +67,19 @@ if __name__ == "__main__":
         help="Number of features in the synthetic dataset"
     )
     parser.add_argument(
-        "--n_estimators", type=int, default=100,
+        "--n-estimators", type=int, default=100,
         help="Number of trees (boosting rounds)"
     )
     parser.add_argument(
-        "--max_depth", type=int, default=3,
+        "--max-depth", type=int, default=3,
         help="Maximum tree depth"
     )
     parser.add_argument(
-        "--learning_rate", type=float, default=0.1,
+        "--learning-rate", type=float, default=0.1,
         help="Learning rate (eta)"
     )
     parser.add_argument(
-        "--random_state", type=int, default=42,
+        "--random-state", type=int, default=42,
         help="Random seed for reproducibility"
     )
     args = parser.parse_args()
@@ -96,7 +96,9 @@ if __name__ == "__main__":
     for k, v in vars(args).items():
         print(f"  - {k}: {v}")
 
-    # Save to JSON
-    output_path = "random_xgb_regressor.json"
+    # Save to JSON (always in src directory)
+    import os
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    output_path = os.path.join(script_dir, "random_xgb_regressor.json")
     model.save_model(output_path)
     print(f"Model saved to {output_path}")
