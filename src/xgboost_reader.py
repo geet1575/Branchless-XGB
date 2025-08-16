@@ -139,6 +139,107 @@ class Tree:
         # When the loop finishes, the current_node is a leaf node
         return current_node.split_condition
 
+    def generate_naive_cpp(self, function_name="predict_tree"):
+        """
+        Generates naive C++ code with if/else conditionals for tree prediction.
+        
+        Args:
+            function_name: Name of the generated C++ function
+            
+        Returns:
+            String containing the C++ function code
+        """
+        code_lines = []
+        code_lines.append(f"float {function_name}(const float* features) {{")
+        
+        def generate_node_code(node, indent_level=1):
+            """Recursively generate code for each node"""
+            indent = "    " * indent_level
+            
+            if node.left_child_id == -1:  # Leaf node
+                code_lines.append(f"{indent}return {node.split_condition}f;")
+            else:  # Split node
+                code_lines.append(f"{indent}if (features[{node.split_index}] < {node.split_condition}f) {{")
+                generate_node_code(node.left_child, indent_level + 1)
+                code_lines.append(f"{indent}}} else {{")
+                generate_node_code(node.right_child, indent_level + 1)
+                code_lines.append(f"{indent}}}")
+        
+        if self.root:
+            generate_node_code(self.root)
+        else:
+            code_lines.append("    return 0.0f;  // Empty tree")
+            
+        code_lines.append("}")
+        return "\n".join(code_lines)
+
+    def generate_branchless_cpp(self, function_name="predict_tree_branchless"):
+        """
+        Generates branchless C++ code using mathematical expressions for tree prediction.
+        
+        Args:
+            function_name: Name of the generated C++ function
+            
+        Returns:
+            String containing the branchless C++ function code
+        """
+        code_lines = []
+        code_lines.append(f"float {function_name}(const float* features) {{")
+        code_lines.append("    float result = 0.0f;")
+        
+        # Collect all paths from root to leaves
+        leaf_paths = []
+        
+        def collect_paths(node, current_path=[]):
+            """Collect all paths from root to leaves with their conditions"""
+            if node.left_child_id == -1:  # Leaf node
+                leaf_paths.append({
+                    'conditions': current_path.copy(),
+                    'value': node.split_condition
+                })
+            else:  # Split node
+                # Left path (condition is true: feature < split_condition)
+                left_condition = {
+                    'feature': node.split_index,
+                    'threshold': node.split_condition,
+                    'is_less_than': True
+                }
+                collect_paths(node.left_child, current_path + [left_condition])
+                
+                # Right path (condition is false: feature >= split_condition)
+                right_condition = {
+                    'feature': node.split_index,
+                    'threshold': node.split_condition,
+                    'is_less_than': False
+                }
+                collect_paths(node.right_child, current_path + [right_condition])
+        
+        if self.root:
+            collect_paths(self.root)
+            
+            # Generate branchless code for each path
+            for i, path in enumerate(leaf_paths):
+                if not path['conditions']:  # Root is leaf
+                    code_lines.append(f"    result += {path['value']}f;")
+                else:
+                    # Build the condition expression
+                    condition_parts = []
+                    for condition in path['conditions']:
+                        if condition['is_less_than']:
+                            condition_parts.append(f"(features[{condition['feature']}] < {condition['threshold']}f)")
+                        else:
+                            condition_parts.append(f"(features[{condition['feature']}] >= {condition['threshold']}f)")
+                    
+                    # Combine all conditions with AND
+                    full_condition = " && ".join(condition_parts)
+                    code_lines.append(f"    result += ({full_condition}) * {path['value']}f;")
+        else:
+            code_lines.append("    // Empty tree")
+            
+        code_lines.append("    return result;")
+        code_lines.append("}")
+        return "\n".join(code_lines)
+
 def create_trees_from_json(json_data):
     """
     Parses the XGBoost model JSON and returns a list of Tree objects.
