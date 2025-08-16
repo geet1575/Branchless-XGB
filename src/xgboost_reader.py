@@ -231,7 +231,7 @@ class Tree:
                             condition_parts.append(f"(features[{condition['feature']}] >= {condition['threshold']}f)")
                     
                     # Combine all conditions with AND
-                    full_condition = " && ".join(condition_parts)
+                    full_condition = " & ".join(condition_parts)
                     code_lines.append(f"    result += ({full_condition}) * {path['value']}f;")
         else:
             code_lines.append("    // Empty tree")
