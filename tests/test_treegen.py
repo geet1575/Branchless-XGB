@@ -227,14 +227,14 @@ def main():
     parser.add_argument(
         "--num-models", 
         type=int, 
-        default=3,
-        help="Number of XGBoost models to generate and test (default: 3)"
+        default=20,
+        help="Number of XGBoost models to generate and test (default: 20)"
     )
     parser.add_argument(
         "--num-arrays", 
         type=int, 
-        default=10,
-        help="Number of random test arrays per model (default: 10)"
+        default=50,
+        help="Number of random test arrays per model (default: 50)"
     )
     parser.add_argument(
         "--verbose", "-v",

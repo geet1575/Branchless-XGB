@@ -1,4 +1,4 @@
-name: CI Tests
+name: Test TreeGen
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  test:
+  test-treegen:
     runs-on: ubuntu-latest
     
     steps:
@@ -31,13 +31,5 @@ jobs:
         bash test_treegen.sh
         if [ $? -ne 0 ]; then
           echo "test_treegen failed"
-          exit 1
-        fi
-    
-    - name: Run test_codegen
-      run: |
-        python3 -m tests.test_codegen --num-tests 3 --max-trees 3 --max-depth 2
-        if [ $? -ne 0 ]; then
-          echo "test_codegen failed"
           exit 1
         fi

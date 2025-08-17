@@ -205,7 +205,7 @@ def main():
         description="Test C++ code generation and prediction accuracy for random XGBoost models"
     )
     parser.add_argument(
-        "--num-tests", type=int, default=5,
+        "--num-tests", type=int, default=100,
         help="Number of random models to test"
     )
     parser.add_argument(
@@ -213,15 +213,15 @@ def main():
         help="Minimum number of features"
     )
     parser.add_argument(
-        "--max-features", type=int, default=10,
+        "--max-features", type=int, default=50,
         help="Maximum number of features"
     )
     parser.add_argument(
-        "--min-trees", type=int, default=1,
+        "--min-trees", type=int, default=30,
         help="Minimum number of trees"
     )
     parser.add_argument(
-        "--max-trees", type=int, default=10,
+        "--max-trees", type=int, default=100,
         help="Maximum number of trees"
     )
     parser.add_argument(
@@ -233,7 +233,7 @@ def main():
         help="Maximum tree depth"
     )
     parser.add_argument(
-        "--min-samples", type=int, default=50,
+        "--min-samples", type=int, default=100,
         help="Minimum number of test samples"
     )
     parser.add_argument(
