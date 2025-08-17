@@ -28,7 +28,7 @@ jobs:
     
     - name: Run test_codegen
       run: |
-        python3 -m tests.test_codegen --num-tests 3 --max-trees 3 --max-depth 2
+        python3 -m tests.test_codegen
         if [ $? -ne 0 ]; then
           echo "test_codegen failed"
           exit 1
