@@ -24,3 +24,6 @@ The average performance does decrease, but there is an increase in tail-end perf
 
 There's only really one issue with the branchless code that's causing it to perform worse than the naive code, it's that the number of instructions has increased (so has the IPC but not enough to make up for the increase).   
 So, the focus, in my opinion, should be entirely on how we make the number of instructions smaller, maybe by clever grouping of terms or something, I don't really know at the moment.
+
+## CI/CD pipeline - 
+Added two yml scripts for automated testing 
