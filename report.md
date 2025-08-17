@@ -18,7 +18,9 @@ These are the results -
 
 ![My experiments](/images/my_benchmark.jpg)
 
-The average performance does decrease, but there is an increase in tail-end performance with a 15% speedup in p99.9 and the standard deviation, which is a proxy for jitter decreases by 4.9%
+The average performance does decrease, but there is an increase in tail-end performance with a 15% speedup in p99.9 and the standard deviation, which is a proxy for jitter decreases by 4.1%
+
+So, all in all, the current trade off is - 1us higher average latency on average with a 15% speedup in tail end latency and 4% lower jitter and 8x less branch mispredictions and 4x higher IPC 
 
 ## Further Optimizations 
 
