@@ -26,6 +26,13 @@ jobs:
     - name: Install Python dependencies
       run: bash setup.sh
     
+    - name: Setup C++ build environment
+      run: |
+        cd src/cpp_code
+        rm -rf benchmark
+        bash build_benchmark.sh
+        cd ../..
+    
     - name: Run test_codegen
       run: |
         python3 -m tests.test_codegen
